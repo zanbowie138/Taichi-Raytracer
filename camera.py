@@ -30,13 +30,31 @@ class Camera:
         self.first_px = viewport_ul + self.px_delta_u / 2 - self.px_delta_v / 2
         self.frame = ti.Vector.field(n=3, dtype=ti.f32, shape=self.img_res)
 
+        self.samples_per_pixel = 100
+
     @ti.kernel
     def render(self, world: ti.template()):
         for x, y in self.frame:
-            px_center = self.first_px + x * self.px_delta_u - y * self.px_delta_v
-            ray_dir = px_center - self.camera_origin
-            view_ray = Ray(origin=self.camera_origin, direction=ray_dir)
-            self.frame[x, y] = self.ray_color(view_ray, world)
+            pixel_color = vec3(0, 0, 0)
+            for _ in range(self.samples_per_pixel):
+                view_ray = self.get_aliased_ray(x, y)
+                pixel_color += self.ray_color(view_ray, world)
+            self.frame[x, y] = pixel_color / self.samples_per_pixel
+
+    @ti.func
+    def get_aliased_ray(self, x: int, y: int) -> Ray:
+        # Generate a random offset within the pixel
+        u_offset = ti.random(ti.f32) - 0.5
+        v_offset = ti.random(ti.f32) - 0.5
+
+        # Calculate the target point on the viewport
+        target = self.first_px + (x + u_offset) * self.px_delta_u - (y + v_offset) * self.px_delta_v
+
+        # Calculate the direction of the ray
+        direction = target - self.camera_origin
+
+        # Return the ray
+        return Ray(origin=self.camera_origin, direction=direction)
 
     @ti.func
     def ray_color(self, ray: Ray, world: ti.template()) -> vec3:
