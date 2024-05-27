@@ -1,5 +1,9 @@
 import taichi as ti
 import taichi.math as tm
+import numpy as np
+from ray import Ray
+from hittable import Sphere
+from world import World
 
 ti.init(arch=ti.gpu)
 
@@ -29,15 +33,9 @@ first_px = viewport_ul + px_delta_u / 2 - px_delta_v / 2
 
 frame = ti.Vector.field(n=3, dtype=ti.f32, shape=img_res)
 
-@ti.dataclass
-class Ray:
-    origin: vec3
-    direction: vec3
-
-    @ti.func
-    def at(self, t: ti.f32) -> ti.math.vec3:
-        return self.origin + t * self.direction
-
+sphere = Sphere(center=vec3(0, 0, -1), radius=0.5)
+floor = Sphere(center=vec3(0, -100.5, -1), radius=100)
+world = World([sphere, floor])
 
 @ti.kernel
 def render_frame():
@@ -51,9 +49,9 @@ def render_frame():
 @ti.func
 def ray_color(ray: Ray) -> vec3:
     color = vec3(0, 0, 0)
-    t = hit_sphere(vec3(0, 0, -1), 0.5, ray)
-    if t > 0.0:
-        norm = (ray.at(t) - vec3(0, 0, -1)).normalized()
+    hit = world.hit(ray, 0, tm.inf)
+    if hit.did_hit:
+        norm = hit.record.normal
         color = 0.5 * vec3(norm[0] + 1, norm[1] + 1, norm[2] + 1)
     else:
         unit_direction = ray.direction.normalized()
