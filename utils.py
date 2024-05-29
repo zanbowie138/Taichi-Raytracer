@@ -21,3 +21,11 @@ def random_unit_vector() -> vec3:
             p = tm.normalize(p)
             break
     return p
+
+@ti.func
+def linear_to_gamma(x: float) -> float:
+    return tm.pow(x, 1 / 2.2) if x > 0 else 0
+
+@ti.func
+def linear_to_gamma_vec3(x: vec3) -> vec3:
+    return vec3(linear_to_gamma(x[0]), linear_to_gamma(x[1]), linear_to_gamma(x[2]))

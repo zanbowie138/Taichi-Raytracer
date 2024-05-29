@@ -44,7 +44,7 @@ class Camera:
             for _ in range(self.samples_per_pixel):
                 view_ray = self.get_offset_ray(x, y)
                 pixel_color += self.get_ray_color(view_ray, world) / self.samples_per_pixel
-            self.frame[x, y] = pixel_color
+            self.frame[x, y] = utils.linear_to_gamma_vec3(pixel_color)
 
     @ti.func
     def get_ray_color(self, ray: Ray, world: ti.template()) -> vec3:
@@ -54,7 +54,7 @@ class Camera:
             if ray_ret.hit_surface:
                 ray = ray_ret.resulting_ray
             else:
-                color = tm.pow(0.5, i) * ray_ret.color
+                color = tm.pow(0.3, i) * ray_ret.color
                 break
         return color
 
