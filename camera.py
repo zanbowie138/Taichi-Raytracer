@@ -34,7 +34,7 @@ class Camera:
         self.first_px = viewport_ul + self.px_delta_u / 2 - self.px_delta_v / 2
         self.frame = ti.Vector.field(n=3, dtype=ti.f32, shape=self.img_res)
 
-        self.samples_per_pixel = 1000
+        self.samples_per_pixel = 10
         self.max_ray_depth = 500
 
     @ti.kernel
@@ -44,7 +44,7 @@ class Camera:
             for _ in range(self.samples_per_pixel):
                 view_ray = self.get_offset_ray(x, y)
                 pixel_color += self.get_ray_color(view_ray, world) / self.samples_per_pixel
-            self.frame[x, y] = utils.linear_to_gamma_vec3(pixel_color)
+            self.frame[x, y] = pixel_color
 
     @ti.func
     def get_ray_color(self, ray: Ray, world: ti.template()) -> vec3:
