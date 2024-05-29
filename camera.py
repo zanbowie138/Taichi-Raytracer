@@ -1,7 +1,9 @@
 import taichi as ti
 import taichi.math as tm
+import utils
 from ray import Ray
 from world import World
+
 
 vec3 = ti.types.vector(3, float)
 
@@ -40,7 +42,7 @@ class Camera:
         for x, y in self.frame:
             pixel_color = vec3(0, 0, 0)
             for _ in range(self.samples_per_pixel):
-                view_ray = self.get_ray(x, y)
+                view_ray = self.get_offset_ray(x, y)
                 pixel_color += self.get_ray_color(view_ray, world) / self.samples_per_pixel
             self.frame[x, y] = pixel_color
 
@@ -57,7 +59,7 @@ class Camera:
         return color
 
     @ti.func
-    def get_ray(self, x: int, y: int) -> Ray:
+    def get_offset_ray(self, x: int, y: int) -> Ray:
         # Generate a random offset within the pixel
         u_offset = ti.random(ti.f32) - 0.5
         v_offset = ti.random(ti.f32) - 0.5
@@ -79,8 +81,7 @@ class Camera:
         resulting_ray = Ray()
         if hit.did_hit:
             norm = hit.record.normal
-            color = 0.5 * vec3(norm[0] + 1, norm[1] + 1, norm[2] + 1)
-            resulting_ray = Ray(origin=hit.record.p, direction=self.random_on_hemisphere(hit.record.normal))
+            resulting_ray = Ray(origin=hit.record.p, direction=norm + utils.random_unit_vector())
         else:
             # Background color
             unit_direction = ray.direction.normalized()
@@ -88,19 +89,4 @@ class Camera:
             color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0)
         return ray_return(hit_surface=hit.did_hit, resulting_ray=resulting_ray, color=color)
 
-    @ti.func
-    def random_unit_vector(self) -> vec3:
-        p = vec3(0, 0, 0)
-        while True:
-            p = 2.0 * vec3(ti.random(ti.f32), ti.random(ti.f32), ti.random(ti.f32)) - vec3(1, 1, 1)
-            if p.dot(p) < 1.0:
-                p = tm.normalize(p)
-                break
-        return p
 
-    @ti.func
-    def random_on_hemisphere(self, normal: vec3) -> vec3:
-        vec = self.random_unit_vector()
-        if vec.dot(normal) < 0.0:
-            vec = -vec
-        return vec
