@@ -48,13 +48,14 @@ class Camera:
 
     @ti.func
     def get_ray_color(self, ray: Ray, world: ti.template()) -> vec3:
-        color = vec3(0, 0, 0)
+        color = vec3(1, 1, 1)
         for i in range(self.max_ray_depth):
             ray_ret = self.step_ray(ray, world)
             if ray_ret.hit_surface:
                 ray = ray_ret.resulting_ray
+                color *= ray_ret.color
             else:
-                color = tm.pow(0.3, i) * ray_ret.color
+                color *= ray_ret.color
                 break
         return color
 
@@ -80,8 +81,12 @@ class Camera:
         hit = world.hit(ray, 0.001, tm.inf)
         resulting_ray = Ray()
         if hit.did_hit:
-            norm = hit.record.normal
-            resulting_ray = Ray(origin=hit.record.p, direction=norm + utils.random_unit_vector())
+            scatter = world.materials.scatter(ray, hit.record)
+            if scatter.did_scatter:
+                color = scatter.attenuation
+                resulting_ray = scatter.scattered
+            else:
+                color = vec3(0, 0, 0)
         else:
             # Background color
             unit_direction = ray.direction.normalized()

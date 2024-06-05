@@ -2,26 +2,23 @@ import taichi as ti
 import taichi.math as tm
 
 from ray import Ray
+from material import hit_record
 
 vec3 = ti.types.vector(3, float)
-hit_record = ti.types.struct(p=vec3, normal=vec3, t=float)
-@ti.dataclass
-class hit_record:
-    p: vec3
-    normal: vec3
-    t: float
-    front_face: bool
 
-    @ti.func
-    def set_face_normal(self, ray: Ray, outward_normal: vec3):
-        self.front_face = ray.direction.dot(self.normal) < 0
-        self.normal = outward_normal if self.front_face else -outward_normal
-hit_return = ti.types.struct(did_hit=bool, record=hit_record)
+@ti.dataclass
+class hit_return:
+    """
+    Struct type storing the hit record and a boolean indicating whether the ray hit the object.
+    """
+    did_hit: bool
+    record: hit_record
 
 @ti.dataclass
 class Sphere:
     center: vec3
     radius: float
+    id: int
 
     @ti.func
     def hit(self, ray: Ray, ray_tmin: float, ray_tmax: float) -> hit_return:
@@ -47,7 +44,7 @@ class Sphere:
 
         if ret:
             point = ray.at(root)
-            hit = hit_record(p=point, normal=(point - self.center) / self.radius, t=root)
+            hit = hit_record(p=point, normal=(point - self.center) / self.radius, t=root, id=self.id)
             outward_normal = (point - self.center) / self.radius
             hit.set_face_normal(ray, outward_normal)
 
