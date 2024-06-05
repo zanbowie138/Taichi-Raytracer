@@ -11,6 +11,10 @@ def random_on_hemisphere(normal: vec3) -> vec3:
         vec = -vec
     return vec
 
+@ti.func
+def near_zero(v: vec3) -> bool:
+    s = 1e-8
+    return (v[0] < s) and (v[1] < s) and (v[2] < s)
 
 @ti.func
 def random_unit_vector() -> vec3:
@@ -25,6 +29,13 @@ def random_unit_vector() -> vec3:
 @ti.func
 def linear_to_gamma(x: float) -> float:
     return tm.pow(x, 1 / 2.2) if x > 0 else 0
+
+@ti.func
+def reflectance(cosine: float, ref_idx: float) -> float:
+    # Schlick's approximation
+    r0 = (1 - ref_idx) / (1 + ref_idx)
+    r0 = r0 * r0
+    return r0 + (1 - r0) * tm.pow(1 - cosine, 5)
 
 @ti.func
 def linear_to_gamma_vec3(x: vec3) -> vec3:

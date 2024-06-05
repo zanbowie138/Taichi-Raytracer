@@ -21,7 +21,7 @@ class Sphere:
     id: int
 
     @ti.func
-    def hit(self, ray: Ray, ray_tmin: float, ray_tmax: float) -> hit_return:
+    def hit(self, ray: Ray, ray_tmin: ti.f32, ray_tmax: ti.f32) -> hit_return:
         oc = self.center - ray.origin
         a = ray.direction.dot(ray.direction)
         h = oc.dot(ray.direction)
@@ -44,8 +44,8 @@ class Sphere:
 
         if ret:
             point = ray.at(root)
-            hit = hit_record(p=point, normal=(point - self.center) / self.radius, t=root, id=self.id)
             outward_normal = (point - self.center) / self.radius
+            hit = hit_record(p=point, normal=outward_normal, t=root, id=self.id)
             hit.set_face_normal(ray, outward_normal)
 
         return hit_return(did_hit=ret, record=hit)

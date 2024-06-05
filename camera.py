@@ -78,13 +78,14 @@ class Camera:
     def step_ray(self, ray: Ray, world: ti.template()) -> ray_return:
         # TODO: Can optimize by using same space for color and ray
         color = vec3(0, 0, 0)
-        hit = world.hit(ray, 0.001, tm.inf)
+        hit = world.hit(ray, 0.00, tm.inf)
         resulting_ray = Ray()
         if hit.did_hit:
             scatter = world.materials.scatter(ray, hit.record)
             if scatter.did_scatter:
                 color = scatter.attenuation
-                resulting_ray = scatter.scattered
+                origin = scatter.scattered.origin + tm.normalize(scatter.scattered.direction) * .0002
+                resulting_ray = Ray(origin=origin, direction=scatter.scattered.direction)
             else:
                 color = vec3(0, 0, 0)
         else:

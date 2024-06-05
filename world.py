@@ -17,7 +17,7 @@ class World:
 
 
     @ti.func
-    def hit(self, ray: Ray, tmin: float, tmax: float) -> hit_return:
+    def hit(self, ray: Ray, tmin: ti.f32, tmax: ti.f32) -> hit_return:
         hit = hit_return()
         closest_so_far = tmax
 

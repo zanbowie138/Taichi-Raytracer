@@ -1,7 +1,4 @@
 import taichi as ti
-import taichi.math as tm
-import numpy as np
-from ray import Ray
 from hittable import Sphere
 from world import World
 from camera import Camera
@@ -20,12 +17,15 @@ sph_c = Sphere(center=vec3(0, 0, -1.2), radius=0.5)
 sph_c_mat = material.Lambert(vec3(0.1, 0.2, 0.5))
 
 sph_l = Sphere(center=vec3(-1, 0, -1), radius=0.5)
-sph_l_mat = material.Metal(vec3(0.8, 0.8, 0.8), 0.3)
+sph_l_mat = material.Dielectric(1.5)
+
+sph_bubble = Sphere(center=vec3(-1, 0, -1), radius=0.4)
+sph_bubble_mat = material.Dielectric(1.00 / 1.50)
 
 sph_r = Sphere(center=vec3(1, 0, -1), radius=0.5)
 sph_r_mat = material.Metal(vec3(0.8, 0.6, 0.2), 1.0)
 
-world = World([floor, sph_c, sph_l, sph_r], [floor_mat, sph_c_mat, sph_l_mat, sph_r_mat])
+world = World([floor, sph_c, sph_l, sph_r, sph_bubble], [floor_mat, sph_c_mat, sph_l_mat, sph_r_mat, sph_bubble_mat])
 cam = Camera(800, 600)
 
 def main():
@@ -42,7 +42,8 @@ def main():
         gui.set_image(current_frame)
         gui.show()
         rendered_frames += 1
-    ti.tools.imwrite(cam.frame, "output.png")
+    print(f"Rendered {rendered_frames} frames")
+    ti.tools.imwrite(current_frame, "output.png")
 
 @ti.kernel
 def average_frames(current_frame: ti.template(), new_frame: ti.template(), weight: float):
