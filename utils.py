@@ -16,8 +16,8 @@ def random_on_hemisphere(normal: vec3) -> vec3:
 def random_unit_vector() -> vec3:
     p = vec3(0, 0, 0)
     while True:
-        p = 2.0 * vec3(ti.random(ti.f32), ti.random(ti.f32), ti.random(ti.f32)) - vec3(1, 1, 1)
-        if p.dot(p) < 1.0:
+        p = vec3(ti.random(ti.f32), ti.random(ti.f32), ti.random(ti.f32)) - vec3(0.5, 0.5, 0.5)
+        if p.dot(p) <= 1.0:
             p = tm.normalize(p)
             break
     return p
