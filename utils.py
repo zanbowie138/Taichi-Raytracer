@@ -1,6 +1,6 @@
 import taichi as ti
 import taichi.math as tm
-import math
+import random
 
 vec3 = ti.types.vector(3, float)
 
@@ -59,6 +59,11 @@ def reflectance(cosine: float, ref_idx: float) -> float:
     r0 = (1 - ref_idx) / (1 + ref_idx)
     r0 = r0 * r0
     return r0 + (1 - r0) * tm.pow(1 - cosine, 5)
+
+
+def rand_vec(min, max):
+    return vec3(random.random() * (max - min) + min, random.random() * (max - min) + min,
+                random.random() * (max - min) + min)
 
 
 @ti.func

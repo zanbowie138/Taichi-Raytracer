@@ -12,18 +12,21 @@ ray_return = ti.types.struct(hit_surface=bool, resulting_ray=Ray, color=vec3)
 
 @ti.data_oriented
 class Camera:
-    def __init__(self, width, height):
+    def __init__(self):
+        aspect_ratio = 16.0 / 9.0
+        width = 1200
+        height = int(width / aspect_ratio)
         self.img_res = (width, height)
 
-        self.samples_per_pixel = 10
+        self.samples_per_pixel = 5
         self.max_ray_depth = 500
 
         vfov = 20
-        lookfrom = vec3(-2,2,1)
-        lookat = vec3(0,0,-1)
+        lookfrom = vec3(13,2,3)
+        lookat = vec3(0,0,0)
         vup = vec3(0,1,0)
-        self.defocus_angle = 10
-        focus_dist = 3.4
+        self.defocus_angle = 0.6
+        focus_dist = 10
 
         # Virtual rectangle in scene that camera sends rays through
         theta = math.radians(vfov)
