@@ -65,6 +65,16 @@ def rand_vec(min, max):
     return vec3(random.random() * (max - min) + min, random.random() * (max - min) + min,
                 random.random() * (max - min) + min)
 
+@ti.func
+def reflect(vec: vec3, norm: vec3) -> vec3:
+    return vec - 2 * vec.dot(norm) * norm
+
+@ti.func
+def refract(uv: vec3, n: vec3, etai_over_etat: float) -> vec3:
+    cos_theta = min((-uv).dot(n), 1.0)
+    r_out_perp = etai_over_etat * (uv + cos_theta * n)
+    r_out_parallel = -tm.sqrt(abs(1.0 - r_out_perp.norm_sqr())) * n
+    return r_out_perp + r_out_parallel
 
 @ti.func
 def linear_to_gamma_vec3(x: vec3) -> vec3:

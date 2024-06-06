@@ -40,20 +40,21 @@ class hit_record:
 
 @ti.dataclass
 class scatter_return:
+    """
+    Struct type storing the result of a scattering event.
+
+    Parameters
+    ----------
+    did_scatter : bool
+        Whether the ray was scattered.
+    attenuation : vec3
+        The attenuation (color) of the ray.
+    scattered : Ray
+        The scattered ray.
+    """
     did_scatter: bool
     attenuation: vec3
     scattered: Ray
-
-@ti.func
-def reflect(vec: vec3, norm: vec3) -> vec3:
-    return vec - 2 * vec.dot(norm) * norm
-
-@ti.func
-def refract(uv: vec3, n: vec3, etai_over_etat: float) -> vec3:
-    cos_theta = min((-uv).dot(n), 1.0)
-    r_out_perp = etai_over_etat * (uv + cos_theta * n)
-    r_out_parallel = -tm.sqrt(abs(1.0 - r_out_perp.norm_sqr())) * n
-    return r_out_perp + r_out_parallel
 
 @ti.data_oriented
 class Materials:
@@ -114,7 +115,7 @@ class Metal:
     @staticmethod
     @ti.func
     def scatter(ray: Ray, record: hit_record, albedo: vec3, roughness: float) -> scatter_return:
-        reflected = reflect(ray.direction.normalized(), record.normal)
+        reflected = utils.reflect(ray.direction.normalized(), record.normal)
         scattered = Ray(record.p, reflected + roughness * utils.random_unit_vector())
         attenuation = albedo
         return scatter_return(did_scatter=True, attenuation=attenuation, scattered=scattered)
@@ -139,9 +140,9 @@ class Dielectric:
         cannot_refract = ri * sin_theta > 1.0
         direction = vec3(0, 0, 0)
         if cannot_refract or utils.reflectance(cos_theta, ri) > ti.random(ti.f32):
-            direction = reflect(unit_direction, record.normal)
+            direction = utils.reflect(unit_direction, record.normal)
         else:
-            direction = refract(unit_direction, record.normal, ri)
+            direction = utils.refract(unit_direction, record.normal, ri)
 
         scattered = Ray(record.p, direction)
         return scatter_return(did_scatter=True, attenuation=attenuation, scattered=scattered)
