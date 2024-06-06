@@ -1,5 +1,6 @@
 import taichi as ti
 import taichi.math as tm
+import math
 import utils
 from ray import Ray
 from world import World
@@ -9,40 +10,62 @@ vec3 = ti.types.vector(3, float)
 
 ray_return = ti.types.struct(hit_surface=bool, resulting_ray=Ray, color=vec3)
 
-
 @ti.data_oriented
 class Camera:
     def __init__(self, width, height):
         self.img_res = (width, height)
 
+        self.samples_per_pixel = 10
+        self.max_ray_depth = 500
+
+        vfov = 20
+        lookfrom = vec3(-2,2,1)
+        lookat = vec3(0,0,-1)
+        vup = vec3(0,1,0)
+        self.defocus_angle = 10
+        focus_dist = 3.4
+
         # Virtual rectangle in scene that camera sends rays through
-        focal_length = 1.0
-        viewport_height = 2.0
+        theta = math.radians(vfov)
+        h = tm.tan(theta / 2)
+        viewport_height = 2.0 * h * focus_dist
         viewport_width = viewport_height * width / height
-        self.camera_origin = vec3(0, 0, 0)
+
+        w = utils.normalize(lookfrom - lookat)
+        u = utils.normalize(vup.cross(w))
+        v = w.cross(u)
+
+        self.camera_origin = lookfrom
 
         # Calculate the vectors across the horizontal and down the vertical viewport edges.
-        viewport_u = vec3(viewport_width, 0, 0)
-        viewport_v = vec3(0, -viewport_height, 0)
+        viewport_u = u * viewport_width
+        viewport_v = -v * viewport_height
 
         # Calculate per-pixel deltas
         self.px_delta_u = viewport_u / width
         self.px_delta_v = viewport_v / height
 
         # Calculate the upper-left corner of the viewport
-        viewport_ul = self.camera_origin - ti.Vector([0, 0, focal_length]) - viewport_u / 2 + viewport_v / 2
+        viewport_ul = self.camera_origin - (focus_dist * w) - (viewport_u / 2) + (viewport_v / 2)
         self.first_px = viewport_ul + self.px_delta_u / 2 - self.px_delta_v / 2
+
+        defocus_radius = focus_dist * math.tan(math.radians(self.defocus_angle / 2))
+        self.defocus_disk_u = u * defocus_radius
+        self.defocus_disk_v = v * defocus_radius
+
         self.frame = ti.Vector.field(n=3, dtype=ti.f32, shape=self.img_res)
 
-        self.samples_per_pixel = 10
-        self.max_ray_depth = 500
+    @ti.func
+    def defocus_disk_sample(self):
+        p = utils.random_in_unit_disc()
+        return self.camera_origin + self.defocus_disk_u * p[0] + self.defocus_disk_v * p[1]
 
     @ti.kernel
     def render(self, world: ti.template()):
         for x, y in self.frame:
             pixel_color = vec3(0, 0, 0)
             for _ in range(self.samples_per_pixel):
-                view_ray = self.get_offset_ray(x, y)
+                view_ray = self.get_ray(x, y)
                 pixel_color += self.get_ray_color(view_ray, world) / self.samples_per_pixel
             self.frame[x, y] = pixel_color
 
@@ -60,19 +83,21 @@ class Camera:
         return color
 
     @ti.func
-    def get_offset_ray(self, x: int, y: int) -> Ray:
+    def get_ray(self, x: int, y: int) -> Ray:
         # Generate a random offset within the pixel
         u_offset = ti.random(ti.f32) - 0.5
         v_offset = ti.random(ti.f32) - 0.5
 
         # Calculate the target point on the viewport
-        target = self.first_px + (x + u_offset) * self.px_delta_u - (y + v_offset) * self.px_delta_v
+        pixel_sample = self.first_px + (x + u_offset) * self.px_delta_u - (y + v_offset) * self.px_delta_v
+
+        ray_origin = self.camera_origin if self.defocus_angle <= 0 else self.defocus_disk_sample()
 
         # Calculate the direction of the ray
-        direction = target - self.camera_origin
+        direction = pixel_sample - ray_origin
 
         # Return the ray
-        return Ray(origin=self.camera_origin, direction=direction)
+        return Ray(origin=ray_origin, direction=direction)
 
     @ti.func
     def step_ray(self, ray: Ray, world: ti.template()) -> ray_return:
