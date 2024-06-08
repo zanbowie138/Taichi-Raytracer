@@ -1,8 +1,8 @@
 import taichi as ti
 
-from material import Materials
+from material import Materials, hit_record
 from ray import Ray
-from hittable import hit_return, Sphere
+from hittable import Sphere
 
 
 @ti.data_oriented
@@ -17,18 +17,20 @@ class World:
 
 
     @ti.func
-    def hit_world(self, ray: Ray, tmin: ti.f32, tmax: ti.f32) -> hit_return:
+    def hit_world(self, ray: Ray, tmin: ti.f32, tmax: ti.f32):
         """
         Check if the ray hits any of the entities in the world. Returns the closest hit.
         """
 
-        hit = hit_return()
+        res_did_hit = False
+        res_record = hit_record()
         closest_so_far = tmax
 
         for i in range(self.entities.shape[0]):
-            entity_hit_return = self.entities[i].hit(ray, tmin, closest_so_far)
-            if entity_hit_return.did_hit:
-                closest_so_far = entity_hit_return.record.t
-                hit = entity_hit_return
+            did_hit, record = self.entities[i].hit(ray, tmin, closest_so_far)
+            if did_hit:
+                closest_so_far = record.t
+                res_did_hit = True
+                res_record = record
 
-        return hit
+        return res_did_hit, res_record

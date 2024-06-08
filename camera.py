@@ -6,8 +6,6 @@ from ray import Ray
 
 vec3 = ti.types.vector(3, float)
 
-ray_return = ti.types.struct(hit_surface=bool, resulting_ray=Ray, color=vec3)
-
 @ti.data_oriented
 class Camera:
     def __init__(self):
@@ -17,12 +15,12 @@ class Camera:
         self.img_res = (width, height)
 
         self.samples_per_pixel = 5
-        self.max_ray_depth = 500
+        self.max_ray_depth = 10
 
         vfov = 20
-        lookfrom = vec3(13,2,3)
-        lookat = vec3(0,0,0)
-        vup = vec3(0,1,0)
+        lookfrom = vec3(13, 2, 3)
+        lookat = vec3(0, 0, 0)
+        vup = vec3(0, 1, 0)
         self.defocus_angle = 0.6
         focus_dist = 10
 
@@ -75,10 +73,10 @@ class Camera:
     def get_ray_color(self, ray: Ray, world: ti.template()) -> vec3:
         color = vec3(1, 1, 1)
         for i in range(self.max_ray_depth):
-            ray_ret = self.step_ray(ray, world)
-            color *= ray_ret.color
-            if ray_ret.hit_surface:
-                ray = ray_ret.resulting_ray
+            did_hit_surface, result_ray, ray_color = self.step_ray(ray, world)
+            color *= ray_color
+            if did_hit_surface:
+                ray = result_ray
             else:
                 break
         return color
@@ -98,21 +96,20 @@ class Camera:
         direction = pixel_sample - ray_origin
 
         # Return the ray
-        return Ray(origin=ray_origin, direction=direction)
+        return Ray(ray_origin, direction)
 
     @ti.func
-    def step_ray(self, ray: Ray, world: ti.template()) -> ray_return:
+    def step_ray(self, ray: Ray, world: ti.template()):
         color = vec3(0, 0, 0)
-        hit = world.hit_world(ray, 0.00, tm.inf)
+        did_hit, record = world.hit_world(ray, 0.00, tm.inf)
         resulting_ray = Ray()
 
-        if hit.did_hit:
+        if did_hit:
             # If the ray hits an object, scatter it
-            scatter_ret = world.materials.scatter(ray, hit.record)
-            if scatter_ret.did_scatter:
-                color = scatter_ret.attenuation
-                origin = scatter_ret.scattered.origin + tm.normalize(scatter_ret.scattered.direction) * .0002
-                resulting_ray = Ray(origin=origin, direction=scatter_ret.scattered.direction)
+            did_scatter, scattered_ray, color = world.materials.scatter(ray, record)
+            if did_scatter:
+                origin = scattered_ray.origin + tm.normalize(scattered_ray.direction) * .0002
+                resulting_ray = Ray(origin, scattered_ray.direction)
             else:
                 color = vec3(0, 0, 0)
         else:
@@ -120,4 +117,4 @@ class Camera:
             unit_direction = ray.direction.normalized()
             a = 0.5 * (unit_direction[1] + 1.0)
             color = (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0)
-        return ray_return(hit_surface=hit.did_hit, resulting_ray=resulting_ray, color=color)
+        return did_hit, resulting_ray, color

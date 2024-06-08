@@ -76,16 +76,16 @@ class Materials:
         self.ior[i] = material.ior
 
     @ti.func
-    def scatter(self, ray: Ray, record: hit_record) -> scatter_return:
+    def scatter(self, ray: Ray, record: hit_record):
         mat_idx = self.mat_index[record.id]
-        scatter_ret = scatter_return()
+        ret = scatter_return()
         if mat_idx == Materials.LAMBERT:
-            scatter_ret = Lambert.scatter(ray, record, self.albedo[record.id])
+            ret = Lambert.scatter(ray, record, self.albedo[record.id])
         if mat_idx == Materials.METAL:
-            scatter_ret = Metal.scatter(ray, record, self.albedo[record.id], self.roughness[record.id])
+            ret = Metal.scatter(ray, record, self.albedo[record.id], self.roughness[record.id])
         if mat_idx == Materials.DIELECTRIC:
-            scatter_ret = Dielectric.scatter(ray, record, self.albedo[record.id], self.ior[record.id])
-        return scatter_ret
+            ret = Dielectric.scatter(ray, record, self.albedo[record.id], self.ior[record.id])
+        return ret.did_scatter, ret.scattered, ret.attenuation
 
 
 class Lambert:

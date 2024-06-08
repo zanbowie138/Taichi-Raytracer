@@ -61,7 +61,7 @@ def main():
     gui = ti.GUI('Taichi Raytracing', cam.img_res, fast_gui=True)
     current_frame = ti.Vector.field(n=3, dtype=ti.f32, shape=cam.img_res)
     rendered_frames = 0
-    while gui.running and rendered_frames < 200:
+    while gui.running:
         weight = 1.0 / (rendered_frames + 1)
         cam.render(world)
         average_frames(current_frame, cam.frame, weight)
