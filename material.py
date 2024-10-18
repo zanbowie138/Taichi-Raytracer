@@ -61,19 +61,23 @@ class Materials:
     LAMBERT = 0
     METAL = 1
     DIELECTRIC = 2
+    LIGHT = 3
 
     def __init__(self, n: int):
         self.roughness = ti.field(ti.f32)
         self.albedo = ti.field(vec3)
+        # Stores index of all materials
         self.mat_index = ti.field(ti.i32)
         self.ior = ti.field(ti.f32)
-        ti.root.dense(ti.i, n).place(self.roughness, self.albedo, self.mat_index, self.ior)
+        self.intensity = ti.field(ti.f32)
+        ti.root.dense(ti.i, n).place(self.roughness, self.albedo, self.mat_index, self.ior, self.intensity)
 
     def set(self, i: int, material):
         self.roughness[i] = material.roughness
         self.albedo[i] = material.albedo
         self.mat_index[i] = material.index
         self.ior[i] = material.ior
+        self.intensity[i] = material.intensity
 
     @ti.func
     def scatter(self, ray: Ray, record: hit_record):
@@ -86,6 +90,9 @@ class Materials:
         if mat_idx == Materials.DIELECTRIC:
             ret = Dielectric.scatter(ray, record, self.albedo[record.id], self.ior[record.id])
         return ret.did_scatter, ret.scattered, ret.attenuation
+    @ti.func
+    def get_light(self, record: hit_record) -> vec3:
+        return Light.return_color(self.albedo[record.id], self.intensity[record.id])
 
 
 class Lambert:
@@ -94,6 +101,7 @@ class Lambert:
         self.index = Materials.LAMBERT
         self.roughness = 0.0
         self.ior = 1.0
+        self.intensity = 0.0
 
     @staticmethod
     @ti.func
@@ -111,6 +119,7 @@ class Metal:
         self.index = Materials.METAL
         self.roughness = min(roughness, 1.0)
         self.ior = 1.0
+        self.intensity = 0.0
 
     @staticmethod
     @ti.func
@@ -126,6 +135,7 @@ class Dielectric:
         self.index = Materials.DIELECTRIC
         self.roughness = 0.0
         self.ior = ior
+        self.intensity = 0.0
 
     @staticmethod
     @ti.func
@@ -146,3 +156,16 @@ class Dielectric:
 
         scattered = Ray(record.p, direction)
         return scatter_return(did_scatter=True, attenuation=attenuation, scattered=scattered)
+
+class Light:
+    def __init__(self, albedo: vec3, intensity: float):
+        self.albedo = albedo
+        self.index = Materials.LIGHT
+        self.roughness = 0.0
+        self.ior = 1.0
+        self.intensity = intensity
+
+    @staticmethod
+    @ti.func
+    def return_color(albedo: vec3, intensity: float) -> vec3:
+        return albedo * intensity

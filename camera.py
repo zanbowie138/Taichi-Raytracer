@@ -14,15 +14,15 @@ class Camera:
         height = int(width / aspect_ratio)
         self.img_res = (width, height)
 
-        self.samples_per_pixel = 5
-        self.max_ray_depth = 10
+        self.samples_per_pixel = 20
+        self.max_ray_depth = 60
 
         vfov = 20
-        lookfrom = vec3(13, 2, 3)
-        lookat = vec3(0, 0, 0)
+        lookfrom = vec3(15, 0, 0)
+        lookat = vec3(0, 0.3, 0)
         vup = vec3(0, 1, 0)
-        self.defocus_angle = 0.6
-        focus_dist = 10
+        self.defocus_angle = 0
+        focus_dist = 0.5
 
         # Virtual rectangle in scene that camera sends rays through
         theta = math.radians(vfov)
@@ -105,13 +105,17 @@ class Camera:
         resulting_ray = Ray()
 
         if did_hit:
-            # If the ray hits an object, scatter it
-            did_scatter, scattered_ray, color = world.materials.scatter(ray, record)
-            if did_scatter:
-                origin = scattered_ray.origin + tm.normalize(scattered_ray.direction) * .0002
-                resulting_ray = Ray(origin, scattered_ray.direction)
+            if world.materials.mat_index[record.id] == world.materials.LIGHT:
+                color = world.materials.get_light(record)
+                did_hit = False
             else:
-                color = vec3(0, 0, 0)
+                # If the ray hits an object, scatter it
+                did_scatter, scattered_ray, color = world.materials.scatter(ray, record)
+                if did_scatter:
+                    origin = scattered_ray.origin + tm.normalize(scattered_ray.direction) * .0002
+                    resulting_ray = Ray(origin, scattered_ray.direction)
+                else:
+                    color = vec3(0, 0, 0)
         else:
             # Background color
             unit_direction = ray.direction.normalized()
